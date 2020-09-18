@@ -1,0 +1,5 @@
+preparation/VOCdevkit/
+.idea/
+__pycache__/
+trainer/logs/*
+yolo_model/yolo4_voc_weights.pth

@@ -9,10 +9,6 @@ def parse_arguments():
     parser.add_argument('-test_percent', default=0.05, help="Percentage of test data in the total data", action="store_true")
     parser.add_argument('-val_percent', default=0.05, help="Percentage of validation data in the total data",
                         action="store_true")
-
-    parser.add_argument('-i', '--ignore', nargs='+', type=str, help="ignore a list of classes.")
-    # argparse receiving list of classes with specific IoU (e.g., python main.py --set-class-iou person 0.7)
-    parser.add_argument('--set-class-iou', nargs='+', type=str, help="set IoU for a specific class.")
     args = parser.parse_args()
     return args
 
