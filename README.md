@@ -8,7 +8,7 @@ Run steps：
      
 2. Use K-means to generate the anchors. 
     
-    - 9 anchors for 3 scale levels (32, 64, 128)
+    - 9 anchors for 3 scale levels (32, 16, 8)
     - 3 anchors for each scale level
     
     `python3 preparation/kmeans_for_anchors.py` 
