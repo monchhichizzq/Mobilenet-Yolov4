@@ -8,11 +8,15 @@ def parse_arguments():
     parser = argparse.ArgumentParser(description='This a script using K-means to generate the anchors for the target dataset')
     parser.add_argument('-size', default=416, help="Input image size", action="store_true")
     parser.add_argument('-anchors_num',default=9, help="Proposed anchor numbers", action="store_true")
-    parser.add_argument('-path', default='VOCdevkit/VOC2007/Annotations', help="Read dataset annotations", action="store_true")
+    parser.add_argument('-path', default='VOCdevkit/VOCtrainval_06-Nov-2007/VOCdevkit/VOC2007/Annotations', help="Read dataset annotations", action="store_true")
     parser.add_argument('-save_path', default="data_txt/yolo_anchors.txt", help="Txt file",
                         action="store_true")
     args = parser.parse_args()
     return args
+
+
+# 608
+# 12, 16,  19, 36,  40, 28,  36, 75,  76, 55,  72, 146,  142, 110,  192, 243,  459, 401
 
 
 def cas_iou(box,cluster):

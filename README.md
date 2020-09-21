@@ -1,6 +1,6 @@
 # Mobilenet-Yolov4
 
-### Run steps
+Run steps：
 
 1. Split the dataset for train, test, validation
 
@@ -20,3 +20,10 @@
 4. Training the YoloBody
 
     `python3 trainer/Train.py` 
+    
+5. Launch the training 
+    
+    Train settings will be shown as follows:
+
+    <p align="center">
+        <img src="README_IMAGES/settings.PNG", width="480", height='320'>

@@ -18,13 +18,36 @@ from yolo_model.loss import YOLOLoss
 from yolo_model.yolo4 import YoloBody
 from tensorboardX import SummaryWriter
 from tqdm import tqdm
+from prettytable import PrettyTable
+
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description='This a script')
     parser.add_argument('-input_shape', default=(416, 416), help="Input image shape", action="store_true")
-    parser.add_argument('-save',default="voc2yolo/", help="Directory stores train.txt, test.txt", action="store_true")
-    parser.add_argument('-test_percent', default=0.05, help="Percentage of test data in the total data", action="store_true")
+    parser.add_argument('-save', default="voc2yolo/", help="Directory stores train.txt, test.txt",
+                        action="store_true")
+    parser.add_argument('-cosine_lr', default=True, help="Activate the cosine learning rate",
+                        action="store_true")
+    parser.add_argument('-mosaic_augmentation', default=True, help="Activate the data augmentation method: mosaic",
+                        action="store_true")
+    parser.add_argument('-cuda', default=True, help="Activate the GPUs for training",
+                        action="store_true")
+    parser.add_argument('-smooth_label', default=0, help="Set the coefficient for smooth label",
+                        action="store_true")
+    parser.add_argument('-data_loader', default=True, help="Whether to use Data Loader",
+                        action="store_true")
+    parser.add_argument('-annotation_path', default='../preparation/data_txt/VOC_2007_trainval.txt',
+                        help="Trainval.txt annotation path", action="store_true")
+    parser.add_argument('-anchors_path', default='../preparation/data_txt/yolo_anchors_kmeans.txt',
+                        help="Path to the file yolo_anchors.txt",
+                        action="store_true")
+    parser.add_argument('-classes_path', default='../preparation/data_txt/voc_classes.txt',
+                        help="Path to the file voc_classes.txt",
+                        action="store_true")
     parser.add_argument('-val_percent', default=0.05, help="Percentage of validation data in the total data",
+                        action="store_true")
+    parser.add_argument('-model_path', default="../models/original/yolo4_voc_weights.pth",
+                        help="Load the pretrained model",
                         action="store_true")
     args = parser.parse_args()
     return args
@@ -132,43 +155,69 @@ def fit_ont_epoch(net,yolo_losses,epoch,epoch_size,epoch_size_val,gen,genval,Epo
 
 
 if __name__ == "__main__":
+    args = parse_arguments()
+    table = PrettyTable()
+    table.field_names = ['Parts', 'Names', 'Input contents', 'Check?']
     #-------------------------------#
     #   输入的shape大小
     #   显存比较小可以使用416x416
     #   显存比较大可以使用608x608
     #-------------------------------#
-    input_shape = (416,416)
+    input_shape = args.input_shape
+    # 6.4f 表示输出的为六位整数位和4位小数位
+    table.add_row([' ', 'input shape', str(input_shape), 'check'])
+
     #-------------------------------#
     #   tricks的使用设置
     #-------------------------------#
-    Cosine_lr = False
-    mosaic = True
+    Cosine_lr = args.cosine_lr
+    mosaic = args.mosaic_augmentation
     # 用于设定是否使用cuda
-    Cuda = False
-    smoooth_label = 0
+    Cuda = args.cuda
+    smooth_label = args.smooth_label
+    table.add_row(['Trick settings', 'cosine lr', Cosine_lr, 'check'])
+    table.add_row(['Trick settings', 'mosaic', mosaic, 'check'])
+    table.add_row(['Trick settings', 'cuda avaliable', torch.cuda.is_available(), 'check'])
+    table.add_row(['Trick settings', 'use cuda', Cuda, 'check'])
+    table.add_row(['Trick settings', 'use smooth label', smooth_label, 'check'])
+
     #-------------------------------#
     #   Dataloder的使用
     #-------------------------------#
-    Use_Data_Loader = True
+    Use_Data_Loader = args.data_loader
+    annotation_path = args.annotation_path
+    table.add_row(['Data settings', 'use data loader', Use_Data_Loader, 'check'])
+    table.add_row(['Data settings', 'data path', annotation_path, 'check'])
 
-    annotation_path = '../preparation/data_txt/VOC_2007_train.txt'
     #-------------------------------#
     #   获得先验框和类
     #-------------------------------#
-    anchors_path = '../preparation/data_txt/yolo_anchors.txt'
-    classes_path = '../preparation/data_txt/voc_classes.txt'
+    anchors_path = args.anchors_path
+    classes_path = args.classes_path
     class_names = get_classes(classes_path)
     anchors = get_anchors(anchors_path)
     num_classes = len(class_names)
 
-    print('Anchor numbers: {0}, Class numbers: {1}'.format(len(anchors[0]), num_classes))
-    print('Yolo final layer output channels: {0}'.format(len(anchors[0])*(5 + num_classes)))
-    
-    # 创建模型
+    table.add_row(['Data settings', 'anchors path', anchors_path, 'check'])
+    #table.add_row(['Data settings', 'anchor values', anchors, 'check'])
+    table.add_row(['Data settings', 'anchor numbers', str(len(anchors[0])), 'check'])
+
+    table.add_row(['Data settings', 'class path', classes_path, 'check'])
+    #table.add_row(['Data settings', 'class names' , class_names, 'check'])
+    table.add_row(['Data settings', 'class numbers', num_classes, 'check'])
+
+    table.add_row(['Data settings', 'Final layer output channels', len(anchors[0])*(5 + num_classes), 'check'])
+
+    # -------------------------------#
+    #    # 创建模型
+    # -------------------------------#
     model = YoloBody(len(anchors[0]),num_classes)
-    model_path = "../yolo_model/yolo4_voc_weights.pth"
+    model_path = args.model_path
+    table.add_row(['Model settings', 'model path', model_path, 'check'])
+
+
     # 加快模型训练的效率
-    print('Loading weights into state dict...')
+    # print('Loading weights into state dict...')
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     model_dict = model.state_dict()
     pretrained_dict = torch.load(model_path, map_location=device)
@@ -183,7 +232,7 @@ if __name__ == "__main__":
     """
     model_dict.update(pretrained_dict)
     model.load_state_dict(model_dict)
-    print('Finished!')
+    # print('Finished!')
 
     net = model.train()
 
@@ -196,10 +245,10 @@ if __name__ == "__main__":
     yolo_losses = []
     for i in range(3):
         yolo_losses.append(YOLOLoss(np.reshape(anchors,[-1,2]),num_classes, \
-                                (input_shape[1], input_shape[0]), smoooth_label, Cuda))
+                                (input_shape[1], input_shape[0]), smooth_label, Cuda))
 
     # 0.1用于验证，0.9用于训练
-    val_split = 0.1
+    val_split = args.val_percent
     with open(annotation_path) as f:
         lines = f.readlines()
     np.random.seed(10101)
@@ -207,7 +256,9 @@ if __name__ == "__main__":
     np.random.seed(None)
     num_val = int(len(lines)*val_split)
     num_train = len(lines) - num_val
-    
+    table.add_row(['Train settings', 'train dataset', num_train, 'check'])
+    table.add_row(['Train settings', 'val dataset', num_val, 'check'])
+
     writer = SummaryWriter(log_dir='logs',flush_secs=60)
     if Cuda:
         graph_inputs = torch.from_numpy(np.random.rand(1,3,input_shape[0],input_shape[1])).type(torch.FloatTensor).cuda()
@@ -220,8 +271,15 @@ if __name__ == "__main__":
         Batch_size = 4
         Init_Epoch = 0
         Freeze_Epoch = 50
-        
+        table.add_row(['Parts frozen', 'initial lr', lr, 'check'])
+        table.add_row(['Parts frozen', 'batch size', Batch_size, 'check'])
+        table.add_row(['Parts frozen', 'initial epoch', Init_Epoch, 'check'])
+        table.add_row(['Parts frozen', 'freeze epoch', Freeze_Epoch, 'check'])
+        table.add_row(['Parts frozen', 'optimizer', 'Adam', 'check'])
+        print(table)
+
         optimizer = optim.Adam(net.parameters(),lr,weight_decay=5e-4)
+
         if Cosine_lr:
             lr_scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=5, eta_min=1e-5)
         else:
@@ -257,6 +315,12 @@ if __name__ == "__main__":
         Batch_size = 2
         Freeze_Epoch = 50
         Unfreeze_Epoch = 100
+        table.add_row(['Released', 'initial lr', lr, 'check'])
+        table.add_row(['Released', 'batch size', Batch_size, 'check'])
+        table.add_row(['Released', 'freeze epoch', Freeze_Epoch, 'check'])
+        table.add_row(['Released', 'unfreeze epoch', Unfreeze_Epoch, 'check'])
+        table.add_row(['Released', 'optimizer', 'Adam', 'check'])
+        print(table)
 
         optimizer = optim.Adam(net.parameters(),lr,weight_decay=5e-4)
         if Cosine_lr:
